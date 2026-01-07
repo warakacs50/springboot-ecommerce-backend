@@ -71,4 +71,9 @@ public class Product {
     public User getUser() {
         return user;
     }
+
+    public Integer getId() {
+        return id;
+    }
+
 }

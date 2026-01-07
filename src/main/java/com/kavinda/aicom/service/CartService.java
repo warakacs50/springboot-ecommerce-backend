@@ -5,6 +5,8 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import com.kavinda.aicom.model.*;
 
+import java.math.BigDecimal;
+
 @Service
 public class CartService {
 
@@ -24,8 +26,8 @@ public class CartService {
 
     //add item to cart
     @Transactional
-    public Cart addItemToCart (Integer userId, Integer productId , Integer quantity){
-        if(quantity < 0){
+    public Cart addItemToCart (Integer userId, Integer productId , Integer quantity , BigDecimal priceAtTime){
+        if(quantity <= 0){
             throw new IllegalArgumentException("quantity should be at least one ");
 
         }
@@ -42,10 +44,66 @@ public class CartService {
         Cart cart = cartRepository.findById(user.getId())
                 .orElseGet(() -> cartRepository.save(new Cart(user)));
 
+        //4.check the product exist in the cart
+        CartItem cartItem = cart.getItems().stream()
+                .filter(cartItem1 -> cartItem1.getProduct().getId().equals(productId))
+                .findFirst()
+                .orElse(null);
+
+        if(cartItem != null){
+            cartItem.setQuantity(cartItem.getQuantity() + quantity);
+        }
+        else{
+            cartItem = new CartItem(product , cart , quantity , priceAtTime );
+            cart.getItems().add(cartItem);
+            cartItemRepository.save(cartItem);
+        }
+
+        return cart;
+
+
+    }
+
+
+    // Remove from cart
+
+    @Transactional
+    public void removeitemFromCart(Integer userId , Integer productId){
+
+       User user = userRepository.findById(userId)
+               .orElseThrow(() -> new RuntimeException("user not found "));
+
+       Cart cart = cartRepository.findByUser(user)
+               .orElseThrow(() -> new RuntimeException("cart not found"));
+
+       CartItem cartItem = cart.getItems().stream()
+               .filter(cartItem1 -> cartItem1.getProduct().getId().equals(productId))
+               .findFirst()
+               .orElseThrow(() -> new RuntimeException("product is not in the cart"));
+
+       cart.getItems().remove(cartItem);
+       cartItemRepository.delete(cartItem);
 
 
 
     }
+
+    // clear cart
+    @Transactional
+    public void clearCart(Integer userId){
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("user not found"));
+
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("cart not found  "));
+
+        cartItemRepository.deleteAll(cart.getItems());
+        cart.getItems().clear();
+    }
+
+
+
+
 
 
 

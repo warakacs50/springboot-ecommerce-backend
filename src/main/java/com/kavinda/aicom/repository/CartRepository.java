@@ -1,10 +1,14 @@
 package com.kavinda.aicom.repository;
 
-import com.kavinda.aicom.model.Cart;
+import com.kavinda.aicom.model.*;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
 @Repository
 public interface CartRepository
         extends JpaRepository<Cart , Integer> {
+
+    Optional<Cart> findByUser(User user);
 }

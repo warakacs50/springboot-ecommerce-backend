@@ -31,7 +31,7 @@ public class CartItem {
     public CartItem() {
     }
 
-    public CartItem(Product product, Cart cart, int quantity, BigDecimal priceAtTime) {
+    public CartItem(Product product, Cart cart, Integer quantity, BigDecimal priceAtTime) {
         this.product = product;
         this.cart = cart;
         this.quantity = quantity;
