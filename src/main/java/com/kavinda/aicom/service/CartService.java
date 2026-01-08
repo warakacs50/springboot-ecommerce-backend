@@ -26,11 +26,14 @@ public class CartService {
 
     //add item to cart
     @Transactional
-    public Cart addItemToCart (Integer userId, Integer productId , Integer quantity , BigDecimal priceAtTime){
+    public Cart addItemToCart (Integer userId, Integer productId , Integer quantity){
         if(quantity <= 0){
             throw new IllegalArgumentException("quantity should be at least one ");
 
         }
+
+        Product price = productRepository.findById(productId).orElseThrow();
+        BigDecimal priceAtTime = price.getPrice();
 
         //1.fetch user
         User user = userRepository.findById(userId)
@@ -100,6 +103,17 @@ public class CartService {
         cartItemRepository.deleteAll(cart.getItems());
         cart.getItems().clear();
     }
+
+    @Transactional
+    public Cart getCartByUser(Integer userId) {
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("user not found"));
+
+        return cartRepository.findByUser(user)
+                .orElseGet(() -> cartRepository.save(new Cart(user)));
+    }
+
 
 
 
