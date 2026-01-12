@@ -23,13 +23,13 @@ public class Product {
 
     public Product(){}
 
-    public Product(Integer id , String name , BigDecimal price , String category ,long stock , User user  ){
-        this.id=id;
+    public Product( String name , BigDecimal price , String category ,long stock   ){
+
         this.name = name;
         this.price = price;
         this.category = category;
         this.stock = stock;
-        this.user = user;
+
 
     }
 
