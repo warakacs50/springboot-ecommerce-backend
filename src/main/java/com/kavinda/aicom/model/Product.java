@@ -2,6 +2,7 @@ package com.kavinda.aicom.model;
 
 import jakarta.persistence.*;
 import com.kavinda.aicom.model.User;
+import java.util.List;
 
 import java.math.BigDecimal;
 

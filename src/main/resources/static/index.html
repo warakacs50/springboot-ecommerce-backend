@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AICom Dashboard</title>
+    <style>
+        body { font-family: Arial; background:#f4f6f8; margin:0; padding:20px; }
+        h1,h2{color:#333;}
+        section { background:white; padding:15px; border-radius:8px; margin-bottom:30px; box-shadow:0 0 8px rgba(0,0,0,0.05);}
+        input,select,button {padding:6px;margin:4px;}
+        button{cursor:pointer;border:none;border-radius:4px;color:white;}
+        button.add {background:#1976d2;}
+        button.update {background:#388e3c;}
+        button.delete {background:#d32f2f;}
+        button.buy {background:#f57c00;}
+        table{width:100%;border-collapse:collapse;margin-top:10px;}
+        th,td{border:1px solid #ddd;padding:8px;text-align:left;}
+        th{background:#1976d2;color:white;}
+        tr:nth-child(even){background:#f2f2f2;}
+        label{display:block;margin-top:5px;}
+    </style>
+</head>
+<body>
+
+<h1>AICom Dashboard</h1>
+
+<!-- 1. USERS -->
+<section>
+    <h2>Create User</h2>
+    <label>Name: <input id="userName"></label>
+    <label>Email: <input id="userEmail"></label>
+    <label>Role:
+        <select id="userRole">
+            <option value="CUSTOMER">CUSTOMER</option>
+            <option value="SELLER">SELLER</option>
+        </select>
+    </label>
+    <button class="add" onclick="addUser()">Add User</button>
+
+    <h3>User List</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+        <tbody id="userList"></tbody>
+    </table>
+</section>
+
+<!-- 2. PRODUCTS (Seller Add) -->
+<section>
+    <h2>Seller Products</h2>
+    <label>Seller ID: <input id="sellerId"></label>
+    <label>Product Name: <input id="productName"></label>
+    <label>Price: <input id="productPrice" type="number" step="0.01"></label>
+    <label>Category: <input id="productCategory"></label>
+    <label>Stock: <input id="productStock" type="number"></label>
+    <button class="add" onclick="addProduct()">Add Product</button>
+
+    <h3>All Products</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Category</th><th>Stock</th></tr></thead>
+        <tbody id="productList"></tbody>
+    </table>
+</section>
+
+<!-- 3. BUY PRODUCTS (Customer Buy) -->
+<section>
+    <h2>Buy Products</h2>
+    <label>Customer ID or Email: <input id="buyUserInput"></label>
+    <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Stock</th><th>Buy Quantity</th><th>Action</th></tr></thead>
+        <tbody id="buyProductList"></tbody>
+    </table>
+</section>
+
+<!-- 4. CART -->
+<section>
+    <h2>Customer Cart</h2>
+    <label>Customer ID or Email: <input id="cartUserInput"></label>
+    <button class="add" onclick="loadCart()">Load Cart</button>
+
+    <table>
+        <thead><tr><th>Product</th><th>Quantity</th><th>Price at Time</th><th>Action</th></tr></thead>
+        <tbody id="cartTable"></tbody>
+    </table>
+</section>
+
+<script>
+    const API="http://localhost:8080";
+
+    /* ---------------- USERS ---------------- */
+    function loadUsers() {
+        fetch(`${API}/api/users`).then(r=>r.json()).then(users=>{
+            const ul=document.getElementById("userList"); ul.innerHTML="";
+            users.forEach(u=>{
+                ul.innerHTML+=`<tr>
+<td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td>
+<td>
+<button class="update" onclick="editUser(${u.id},'${u.name}','${u.email}','${u.role}')">Edit</button>
+<button class="delete" onclick="deleteUser(${u.id})">Delete</button>
+</td></tr>`;
+            });
+        });
+    }
+    function addUser() {
+        fetch(`${API}/api/users`,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                name:document.getElementById("userName").value,
+                email:document.getElementById("userEmail").value,
+                role:document.getElementById("userRole").value
+            })
+        }).then(loadUsers);
+    }
+    function editUser(id,name,email,role){
+        const newName=prompt("New name:",name); if(!newName)return;
+        const newEmail=prompt("New email:",email); if(!newEmail)return;
+        const newRole=prompt("Role (CUSTOMER/SELLER):",role); if(!newRole)return;
+        fetch(`${API}/api/users/${id}`,{
+            method:"PUT",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({name:newName,email:newEmail,role:newRole})
+        }).then(loadUsers);
+    }
+    function deleteUser(id){
+        fetch(`${API}/api/users/${id}`,{method:"DELETE"}).then(loadUsers);
+    }
+
+    /* ---------------- PRODUCTS ---------------- */
+    function loadProducts(){
+        fetch(`${API}/product`).then(r=>r.json()).then(products=>{
+            const ul=document.getElementById("productList");
+            const buyList=document.getElementById("buyProductList");
+            ul.innerHTML=""; buyList.innerHTML="";
+            products.forEach(p=>{
+                ul.innerHTML+=`<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price}</td><td>${p.category||''}</td><td>${p.stock||0}</td></tr>`;
+                buyList.innerHTML+=`<tr>
+<td>${p.id}</td><td>${p.name}</td><td>${p.price}</td><td>${p.stock||0}</td>
+<td><input type="number" id="buyQty${p.id}" value="1" min="1" max="${p.stock||1}" style="width:60px;"></td>
+<td><button class="buy" onclick="buyProduct(${p.id})">Buy</button></td>
+</tr>`;
+            });
+        });
+    }
+    function addProduct(){
+        const sellerId = document.getElementById("sellerId").value;
+        if(!sellerId){ alert("Enter seller ID"); return; }
+        fetch(`${API}/product?sellerId=${sellerId}`,{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                name:document.getElementById("productName").value,
+                price:parseFloat(document.getElementById("productPrice").value),
+                category:document.getElementById("productCategory").value,
+                stock:parseInt(document.getElementById("productStock").value)
+            })
+        }).then(loadProducts);
+    }
+
+    /* ---------------- BUY ---------------- */
+    function buyProduct(productId){
+        const userInput=document.getElementById("buyUserInput").value;
+        const qty = parseInt(document.getElementById(`buyQty${productId}`).value);
+        if(!userInput){ alert("Enter Customer ID or email"); return; }
+        fetch(`${API}/api/users`).then(r=>r.json()).then(users=>{
+            const user=users.find(u=>u.id==userInput||u.email===userInput);
+            if(!user){alert("User not found"); return;}
+            fetch(`${API}/api/cart/add?userId=${user.id}&productId=${productId}&quantity=${qty}`,{method:"POST"})
+                .then(()=>{ alert("Product added to cart!"); loadCart(); });
+        });
+    }
+
+    /* ---------------- CART ---------------- */
+    function loadCart(){
+        const input=document.getElementById("cartUserInput").value;
+        fetch(`${API}/api/users`).then(r=>r.json()).then(users=>{
+            const user=users.find(u=>u.id==input||u.email===input);
+            if(!user){alert("User not found"); return;}
+            fetch(`${API}/api/cart?userId=${user.id}`).then(r=>r.json()).then(cart=>{
+                const table=document.getElementById("cartTable"); table.innerHTML="";
+                if(!cart.items||cart.items.length===0){
+                    table.innerHTML="<tr><td colspan='4'>Cart is empty</td></tr>";
+                    return;
+                }
+                cart.items.forEach(item=>{
+                    table.innerHTML+=`<tr>
+<td>${item.product.name}</td>
+<td>${item.quantity}</td>
+<td>${item.priceAtTime}</td>
+<td><button class="delete" onclick="removeCartItem(${user.id},${item.product.id})">Remove</button></td>
+</tr>`;
+                });
+            });
+        });
+    }
+    function removeCartItem(userId,productId){
+        fetch(`${API}/api/cart/remove?userId=${userId}&productId=${productId}`,{method:"DELETE"})
+            .then(()=>loadCart());
+    }
+
+    /* INIT */
+    loadUsers(); loadProducts();
+</script>
+
+</body>
+</html>
