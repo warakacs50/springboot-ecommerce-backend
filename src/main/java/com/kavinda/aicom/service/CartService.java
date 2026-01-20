@@ -26,46 +26,35 @@ public class CartService {
 
     //add item to cart
     @Transactional
-    public Cart addItemToCart (Integer userId, Integer productId , Integer quantity){
-        if(quantity <= 0){
-            throw new IllegalArgumentException("quantity should be at least one ");
+    public Cart addItemToCart(Integer userId, Integer productId, Integer quantity) {
+        if (quantity <= 0) throw new IllegalArgumentException("quantity should be at least one");
 
-        }
-
-        Product price = productRepository.findById(productId).orElseThrow();
-        BigDecimal priceAtTime = price.getPrice();
-
-        //1.fetch user
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("user not found"));
 
-        //2.fetch product
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("product not found"));
 
-        //3.fetch cart or create new cart
-        Cart cart = cartRepository.findById(user.getId())
+        BigDecimal priceAtTime = product.getPrice();
+
+        Cart cart = cartRepository.findByUser(user)
                 .orElseGet(() -> cartRepository.save(new Cart(user)));
 
-        //4.check the product exist in the cart
         CartItem cartItem = cart.getItems().stream()
-                .filter(cartItem1 -> cartItem1.getProduct().getId().equals(productId))
+                .filter(i -> i.getProduct().getId().equals(productId))
                 .findFirst()
                 .orElse(null);
 
-        if(cartItem != null){
+        if (cartItem != null) {
             cartItem.setQuantity(cartItem.getQuantity() + quantity);
-        }
-        else{
-            cartItem = new CartItem(product , cart , quantity , priceAtTime );
-            cart.getItems().add(cartItem);
-            cartItemRepository.save(cartItem);
+        } else {
+            cartItem = new CartItem(product, cart, quantity, priceAtTime);
+            cart.getItems().add(cartItem); // cascade handles saving
         }
 
-        return cart;
-
-
+        return cartRepository.save(cart);
     }
+
 
 
     // Remove from cart

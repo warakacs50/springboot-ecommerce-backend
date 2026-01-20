@@ -16,5 +16,4 @@ extends JpaRepository<Product , Integer> {
 
     List<Product> findByUserId(Integer userId);
     Optional<Product> findById(Product id);
-    
 }

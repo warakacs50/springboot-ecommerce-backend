@@ -2,6 +2,8 @@ package com.kavinda.aicom.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Transient;
 
 @Entity
 @Table(name = "cart_items")
@@ -19,6 +21,7 @@ public class CartItem {
     // Many CartItems belong to one Cart
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "cart_id")
+    @JsonIgnore
     private Cart cart;
 
     // Quantity of the product in this cart item
@@ -26,6 +29,13 @@ public class CartItem {
 
     // Price snapshot at the time item was added to cart
     private BigDecimal priceAtTime;
+
+
+    @Transient
+    public BigDecimal getSubTotal() {
+        if (priceAtTime == null) return BigDecimal.ZERO;
+        return priceAtTime.multiply(BigDecimal.valueOf(quantity));
+    }
 
     // ==================== Constructors ====================
     public CartItem() {

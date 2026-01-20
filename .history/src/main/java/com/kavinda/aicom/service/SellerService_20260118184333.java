@@ -1,14 +1,11 @@
 package com.kavinda.aicom.service;
 
-import com.kavinda.aicom.model.Product;
 import com.kavinda.aicom.model.Seller;
 import com.kavinda.aicom.model.User;
-import com.kavinda.aicom.repository.ProductRepository;
 import com.kavinda.aicom.repository.SellerRepository;
 import com.kavinda.aicom.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import com.kavinda.aicom.model.Role;
 
 import java.util.List;
 
@@ -18,12 +15,10 @@ public class SellerService {
 
     private final SellerRepository sellerRepository;
     private final UserRepository userRepository;
-    private final ProductRepository productRepository;
 
-    public SellerService(ProductRepository productRepository,SellerRepository sellerRepository, UserRepository userRepository) {
+    public SellerService(SellerRepository sellerRepository, UserRepository userRepository) {
         this.sellerRepository = sellerRepository;
         this.userRepository = userRepository;
-        this.productRepository = productRepository;
     }
 
     // CREATE seller profile
@@ -65,16 +60,5 @@ public class SellerService {
     public void deleteSeller(Integer id) {
         Seller seller = getSellerById(id);
         sellerRepository.delete(seller);
-    }
-
-    public List<Product> getMyProducts(Integer sellerUserId) {
-        User seller = userRepository.findById(sellerUserId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        if (seller.getRole() != Role.SELLER) {
-            throw new RuntimeException("Only sellers can view their products");
-        }
-
-        return productRepository.findByUserId(sellerUserId);
     }
 }

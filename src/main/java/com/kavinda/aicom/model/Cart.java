@@ -1,9 +1,10 @@
 package com.kavinda.aicom.model;
 
+import java.math.BigDecimal;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
-
+import jakarta.persistence.Transient;
 @Entity
 @Table(name = "carts")
 public class Cart {
@@ -20,6 +21,13 @@ public class Cart {
     // Cart has multiple items
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<CartItem> items = new ArrayList<>();
+
+    @Transient
+    public BigDecimal getTotal() {
+        return items.stream()
+                .map(CartItem::getSubTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 
     public Cart() {
     }

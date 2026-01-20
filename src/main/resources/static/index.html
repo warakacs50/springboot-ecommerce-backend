@@ -1,205 +1,598 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>AICom Dashboard</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>AI E-Commerce Front (Basic)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial; background:#f4f6f8; margin:0; padding:20px; }
-        h1,h2{color:#333;}
-        section { background:white; padding:15px; border-radius:8px; margin-bottom:30px; box-shadow:0 0 8px rgba(0,0,0,0.05);}
-        input,select,button {padding:6px;margin:4px;}
-        button{cursor:pointer;border:none;border-radius:4px;color:white;}
-        button.add {background:#1976d2;}
-        button.update {background:#388e3c;}
-        button.delete {background:#d32f2f;}
-        button.buy {background:#f57c00;}
-        table{width:100%;border-collapse:collapse;margin-top:10px;}
-        th,td{border:1px solid #ddd;padding:8px;text-align:left;}
-        th{background:#1976d2;color:white;}
-        tr:nth-child(even){background:#f2f2f2;}
-        label{display:block;margin-top:5px;}
+        body { padding: 24px; }
+        section { border: 1px solid #e5e5e5; border-radius: 12px; padding: 18px; margin-bottom: 18px; }
+        .muted { color: #666; font-size: 0.9rem; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+        pre { background:#f8f9fa; border:1px solid #eee; border-radius:10px; padding:12px; max-height:260px; overflow:auto;}
     </style>
 </head>
 <body>
 
-<h1>AICom Dashboard</h1>
+<div class="container">
+    <h1 class="mb-1">AI E-Commerce Front (Basic)</h1>
+    <p class="muted mb-4">
+        Single-page frontend for: Create User (Role), Seller Add Product, Product List + Add to Cart, View Cart.
+        <br/>Edit the API URLs below to match your backend routes.
+    </p>
 
-<!-- 1. USERS -->
-<section>
-    <h2>Create User</h2>
-    <label>Name: <input id="userName"></label>
-    <label>Email: <input id="userEmail"></label>
-    <label>Role:
-        <select id="userRole">
-            <option value="CUSTOMER">CUSTOMER</option>
-            <option value="SELLER">SELLER</option>
-        </select>
-    </label>
-    <button class="add" onclick="addUser()">Add User</button>
+    <!-- CONFIG -->
+    <section>
+        <h4 class="mb-3">0) API Config</h4>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label class="form-label">Backend Base URL</label>
+                <input id="baseUrl" class="form-control" value="http://localhost:8080" />
+                <div class="muted mt-1">Example: http://localhost:8080</div>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-primary w-100" onclick="saveBaseUrl()">Save</button>
+            </div>
+        </div>
 
-    <h3>User List</h3>
-    <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
-        <tbody id="userList"></tbody>
-    </table>
-</section>
+        <hr class="my-3"/>
 
-<!-- 2. PRODUCTS (Seller Add) -->
-<section>
-    <h2>Seller Products</h2>
-    <label>Seller ID: <input id="sellerId"></label>
-    <label>Product Name: <input id="productName"></label>
-    <label>Price: <input id="productPrice" type="number" step="0.01"></label>
-    <label>Category: <input id="productCategory"></label>
-    <label>Stock: <input id="productStock" type="number"></label>
-    <button class="add" onclick="addProduct()">Add Product</button>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">Users API</label>
+                <input id="usersApi" class="form-control mono" value="/api/users" />
+                <div class="muted mt-1">Example: <span class="mono">/api/users</span></div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Products API</label>
+                <input id="productsApi" class="form-control mono" value="/product" />
+                <div class="muted mt-1">Example: <span class="mono">/api/products</span> or <span class="mono">/product</span></div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Cart API</label>
+                <input id="cartApi" class="form-control mono" value="/api/cart" />
+                <div class="muted mt-1">
+                    Expected endpoints:
+                    <span class="mono">POST /items</span>,
+                    <span class="mono">GET ?userId=</span> (or your own mapping)
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Seller Add Product API</label>
+                <input id="sellerAddProductApi" value="/product?sellerId={sellerId}">
 
-    <h3>All Products</h3>
-    <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Category</th><th>Stock</th></tr></thead>
-        <tbody id="productList"></tbody>
-    </table>
-</section>
+                <div class="muted mt-1">
+                    Example: <span class="mono">POST /api/products/seller/{sellerId}</span> or <span class="mono">POST /product?sellerId=</span>
+                </div>
+            </div>
+        </div>
 
-<!-- 3. BUY PRODUCTS (Customer Buy) -->
-<section>
-    <h2>Buy Products</h2>
-    <label>Customer ID or Email: <input id="buyUserInput"></label>
-    <table>
-        <thead><tr><th>ID</th><th>Name</th><th>Price</th><th>Stock</th><th>Buy Quantity</th><th>Action</th></tr></thead>
-        <tbody id="buyProductList"></tbody>
-    </table>
-</section>
+        <div class="alert alert-warning mt-3 mb-0">
+            If your backend uses different paths, just change the fields above — no other code changes needed.
+        </div>
+    </section>
 
-<!-- 4. CART -->
-<section>
-    <h2>Customer Cart</h2>
-    <label>Customer ID or Email: <input id="cartUserInput"></label>
-    <button class="add" onclick="loadCart()">Load Cart</button>
+    <!-- 1) CREATE USER -->
+    <section>
+        <h4 class="mb-3">1) Create User + Role</h4>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Name</label>
+                <input id="uName" class="form-control" placeholder="Kavinda" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Email</label>
+                <input id="uEmail" class="form-control" placeholder="kavinda@mail.com" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Role</label>
+                <select id="uRole" class="form-select">
+                    <option value="CUSTOMER">CUSTOMER</option>
+                    <option value="SELLER">SELLER</option>
+                    <option value="ADMIN">ADMIN</option>
+                </select>
+            </div>
+            <div class="col-md-12">
+                <button class="btn btn-success" onclick="createUser()">Create User</button>
+            </div>
+        </div>
+        <div class="mt-3">
+            <div class="muted">Response</div>
+            <pre id="createUserOut"></pre>
+        </div>
+    </section>
 
-    <table>
-        <thead><tr><th>Product</th><th>Quantity</th><th>Price at Time</th><th>Action</th></tr></thead>
-        <tbody id="cartTable"></tbody>
-    </table>
-</section>
+    <!-- 4) SELLER ADD PRODUCT -->
+    <section>
+        <h4 class="mb-3">4) Seller Adds Product</h4>
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label">Seller ID</label>
+                <input id="sellerId" class="form-control" placeholder="e.g. 2" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Product Name</label>
+                <input id="pName" class="form-control" placeholder="Keyboard" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Price</label>
+                <input id="pPrice" class="form-control" placeholder="4500.00" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stock</label>
+                <input id="pStock" class="form-control" placeholder="10" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <input id="pCategory" class="form-control" placeholder="ELECTRONICS" />
+                <div class="muted mt-1">Must match backend enum/string</div>
+            </div>
+
+            <div class="col-md-12">
+                <button class="btn btn-warning" onclick="sellerAddProduct()">Add Product</button>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <div class="muted">Response</div>
+            <pre id="sellerAddOut"></pre>
+        </div>
+    </section>
+
+
+    <!-- 2) SHOP: identify customer -> show products -> add to cart -->
+    <section>
+        <h4 class="mb-3">2) Shop (Customer → Products → Add to Cart)</h4>
+
+        <!-- Step A: Identify customer -->
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">Customer User ID (preferred)</label>
+                <input id="shopUserId" class="form-control" placeholder="e.g. 1" />
+            </div>
+
+            <div class="col-md-5">
+                <label class="form-label">Customer Email (optional)</label>
+                <input id="shopEmail" class="form-control" placeholder="customer@mail.com" />
+                <div class="muted mt-1">
+                    Email lookup only works if your backend has a "find user by email" endpoint.
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100" onclick="startShopping()">Start Shopping</button>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <div class="muted">Shop status</div>
+            <pre id="shopStatus"></pre>
+        </div>
+
+        <hr class="my-3"/>
+
+        <!-- Step B: Products list (hidden until customer is identified) -->
+        <div id="shopProductsWrap" style="display:none;">
+            <div class="row g-3 align-items-end mb-2">
+                <div class="col-md-6">
+                    <label class="form-label">Search products</label>
+                    <input id="productSearch" class="form-control" placeholder="type product name..." oninput="renderProductsForShop()" />
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-dark w-100" onclick="loadProductsForShop()">Reload Products</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                    <tr>
+                        <th style="width:80px;">ID</th>
+                        <th>Name</th>
+                        <th style="width:140px;">Price</th>
+                        <th style="width:120px;">Stock</th>
+                        <th style="width:160px;">Quantity</th>
+                        <th style="width:170px;">Add</th>
+                    </tr>
+                    </thead>
+                    <tbody id="productsTbody"></tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <div class="muted">Last action response</div>
+                <pre id="shopActionOut"></pre>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- 3) VIEW CART BY ID OR EMAIL -->
+    <section>
+        <h4 class="mb-3">3) View Cart (by User ID or Email)</h4>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">User ID</label>
+                <input id="cartUserId" class="form-control" placeholder="e.g. 1" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Email (optional)</label>
+                <input id="cartEmail" class="form-control" placeholder="customer@mail.com" />
+                <div class="muted mt-1">If your backend supports email lookup. If not, leave empty.</div>
+            </div>
+            <div class="col-md-4">
+                <button class="btn btn-dark w-100" onclick="loadCart()">Load Cart</button>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <div class="muted">Cart JSON</div>
+            <pre id="cartOut"></pre>
+        </div>
+
+        <div class="mt-3">
+            <h6>Cart Items (parsed)</h6>
+            <div id="cartParsed" class="muted">No cart loaded.</div>
+        </div>
+    </section>
+
+    <section class="alert alert-info">
+        <strong>If fetch fails:</strong>
+        <ul class="mb-0">
+            <li>Enable CORS in Spring Boot (or use same origin).</li>
+            <li>Make sure your endpoints match the configured paths.</li>
+            <li>Check backend JSON recursion (Cart ↔ CartItem). Add <span class="mono">@JsonIgnore</span> on <span class="mono">CartItem.cart</span>.</li>
+            <li>If Cart.items is LAZY, use <span class="mono">@EntityGraph</span> or load items inside transaction.</li>
+        </ul>
+    </section>
+</div>
 
 <script>
-    const API="http://localhost:8080";
 
-    /* ---------------- USERS ---------------- */
-    function loadUsers() {
-        fetch(`${API}/api/users`).then(r=>r.json()).then(users=>{
-            const ul=document.getElementById("userList"); ul.innerHTML="";
-            users.forEach(u=>{
-                ul.innerHTML+=`<tr>
-<td>${u.id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td>
-<td>
-<button class="update" onclick="editUser(${u.id},'${u.name}','${u.email}','${u.role}')">Edit</button>
-<button class="delete" onclick="deleteUser(${u.id})">Delete</button>
-</td></tr>`;
-            });
-        });
-    }
-    function addUser() {
-        fetch(`${API}/api/users`,{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({
-                name:document.getElementById("userName").value,
-                email:document.getElementById("userEmail").value,
-                role:document.getElementById("userRole").value
-            })
-        }).then(loadUsers);
-    }
-    function editUser(id,name,email,role){
-        const newName=prompt("New name:",name); if(!newName)return;
-        const newEmail=prompt("New email:",email); if(!newEmail)return;
-        const newRole=prompt("Role (CUSTOMER/SELLER):",role); if(!newRole)return;
-        fetch(`${API}/api/users/${id}`,{
-            method:"PUT",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({name:newName,email:newEmail,role:newRole})
-        }).then(loadUsers);
-    }
-    function deleteUser(id){
-        fetch(`${API}/api/users/${id}`,{method:"DELETE"}).then(loadUsers);
-    }
 
-    /* ---------------- PRODUCTS ---------------- */
-    function loadProducts(){
-        fetch(`${API}/product`).then(r=>r.json()).then(products=>{
-            const ul=document.getElementById("productList");
-            const buyList=document.getElementById("buyProductList");
-            ul.innerHTML=""; buyList.innerHTML="";
-            products.forEach(p=>{
-                ul.innerHTML+=`<tr><td>${p.id}</td><td>${p.name}</td><td>${p.price}</td><td>${p.category||''}</td><td>${p.stock||0}</td></tr>`;
-                buyList.innerHTML+=`<tr>
-<td>${p.id}</td><td>${p.name}</td><td>${p.price}</td><td>${p.stock||0}</td>
-<td><input type="number" id="buyQty${p.id}" value="1" min="1" max="${p.stock||1}" style="width:60px;"></td>
-<td><button class="buy" onclick="buyProduct(${p.id})">Buy</button></td>
-</tr>`;
-            });
-        });
-    }
-    function addProduct(){
-        const sellerId = document.getElementById("sellerId").value;
-        if(!sellerId){ alert("Enter seller ID"); return; }
-        fetch(`${API}/product?sellerId=${sellerId}`,{
-            method:"POST",
-            headers:{"Content-Type":"application/json"},
-            body:JSON.stringify({
-                name:document.getElementById("productName").value,
-                price:parseFloat(document.getElementById("productPrice").value),
-                category:document.getElementById("productCategory").value,
-                stock:parseInt(document.getElementById("productStock").value)
-            })
-        }).then(loadProducts);
+    // ====== SECTION 2: customer -> products -> add to cart (row qty + button) ======
+    let SHOP_USER_ID = null;
+    let PRODUCTS_CACHE = [];
+
+    // Step 1: lock customer (userId preferred; email optional only if you have backend support)
+    async function startShopping() {
+        const status = document.getElementById("shopStatus");
+        const wrap = document.getElementById("shopProductsWrap");
+        status.textContent = "Loading...";
+        wrap.style.display = "none";
+        SHOP_USER_ID = null;
+
+        const { baseUrl, usersApi } = getCfg();
+        const userIdRaw = document.getElementById("shopUserId").value.trim();
+        const email = document.getElementById("shopEmail").value.trim();
+
+        if (userIdRaw) {
+            SHOP_USER_ID = parseInt(userIdRaw, 10);
+            status.textContent = `Customer locked ✅\nuserId = ${SHOP_USER_ID}`;
+            wrap.style.display = "block";
+            await loadProductsForShop();
+            return;
+        }
+
+        if (email) {
+            // Only works if you implemented this endpoint:
+            // GET {usersApi}/by-email?email=...
+            try {
+                const url = `${baseUrl}${usersApi}/by-email?email=${encodeURIComponent(email)}`;
+                const user = await httpJson(url, "GET");
+                if (!user?.id) throw new Error("Email lookup returned no user id.");
+                SHOP_USER_ID = user.id;
+
+                status.textContent = `Customer locked ✅\nemail = ${email}\nuserId = ${SHOP_USER_ID}`;
+                wrap.style.display = "block";
+                await loadProductsForShop();
+                return;
+            } catch (e) {
+                status.textContent =
+                    "ERROR:\nEmail lookup failed.\nUse User ID instead.\n\nDetails:\n" + e.message;
+                return;
+            }
+        }
+
+        status.textContent = "ERROR:\nEnter customer User ID (recommended) or Email.";
     }
 
-    /* ---------------- BUY ---------------- */
-    function buyProduct(productId){
-        const userInput=document.getElementById("buyUserInput").value;
-        const qty = parseInt(document.getElementById(`buyQty${productId}`).value);
-        if(!userInput){ alert("Enter Customer ID or email"); return; }
-        fetch(`${API}/api/users`).then(r=>r.json()).then(users=>{
-            const user=users.find(u=>u.id==userInput||u.email===userInput);
-            if(!user){alert("User not found"); return;}
-            fetch(`${API}/api/cart/add?userId=${user.id}&productId=${productId}&quantity=${qty}`,{method:"POST"})
-                .then(()=>{ alert("Product added to cart!"); loadCart(); });
-        });
+    // Step 2: load all products
+    async function loadProductsForShop() {
+        const status = document.getElementById("shopStatus");
+        const tbody = document.getElementById("productsTbody");
+        const actionOut = document.getElementById("shopActionOut");
+        tbody.innerHTML = "";
+        actionOut.textContent = "";
+
+        if (!SHOP_USER_ID) {
+            status.textContent = "ERROR:\nNo customer selected. Enter User ID and click Start Shopping.";
+            return;
+        }
+
+        const { baseUrl, productsApi } = getCfg();
+        const url = baseUrl + productsApi;
+
+        status.textContent = "Loading products from:\n" + url;
+
+        try {
+            const data = await httpJson(url, "GET");
+            PRODUCTS_CACHE = Array.isArray(data) ? data : (data.content || []);
+            status.textContent = `Customer userId=${SHOP_USER_ID}\nLoaded ${PRODUCTS_CACHE.length} products ✅`;
+            renderProductsForShop();
+        } catch (e) {
+            status.textContent = "ERROR loading products:\n" + e.message;
+        }
     }
 
-    /* ---------------- CART ---------------- */
-    function loadCart(){
-        const input=document.getElementById("cartUserInput").value;
-        fetch(`${API}/api/users`).then(r=>r.json()).then(users=>{
-            const user=users.find(u=>u.id==input||u.email===input);
-            if(!user){alert("User not found"); return;}
-            fetch(`${API}/api/cart?userId=${user.id}`).then(r=>r.json()).then(cart=>{
-                const table=document.getElementById("cartTable"); table.innerHTML="";
-                if(!cart.items||cart.items.length===0){
-                    table.innerHTML="<tr><td colspan='4'>Cart is empty</td></tr>";
-                    return;
-                }
-                cart.items.forEach(item=>{
-                    table.innerHTML+=`<tr>
-<td>${item.product.name}</td>
-<td>${item.quantity}</td>
-<td>${item.priceAtTime}</td>
-<td><button class="delete" onclick="removeCartItem(${user.id},${item.product.id})">Remove</button></td>
-</tr>`;
-                });
-            });
-        });
-    }
-    function removeCartItem(userId,productId){
-        fetch(`${API}/api/cart/remove?userId=${userId}&productId=${productId}`,{method:"DELETE"})
-            .then(()=>loadCart());
+    // Step 3: render product rows with qty + add button
+    function renderProductsForShop() {
+        const tbody = document.getElementById("productsTbody");
+        tbody.innerHTML = "";
+
+        const q = (document.getElementById("productSearch").value || "").trim().toLowerCase();
+        const list = PRODUCTS_CACHE.filter(p => !q || (p.name || "").toLowerCase().includes(q));
+
+        for (const p of list) {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+      <td>${p.id ?? ""}</td>
+      <td>${p.name ?? ""}</td>
+      <td>${p.price ?? ""}</td>
+      <td>${p.stock ?? ""}</td>
+      <td>
+        <input class="form-control form-control-sm"
+               type="number" min="1" value="1"
+               id="qty-prod-${p.id}">
+      </td>
+      <td>
+        <button class="btn btn-sm btn-success"
+                onclick="addRowProductToCart(${p.id})">
+          Add to Cart
+        </button>
+      </td>
+    `;
+            tbody.appendChild(tr);
+        }
     }
 
-    /* INIT */
-    loadUsers(); loadProducts();
+    // Step 4: add product to that customer's cart
+    async function addRowProductToCart(productId) {
+        const out = document.getElementById("shopActionOut");
+        out.textContent = "Loading...";
+
+        if (!SHOP_USER_ID) {
+            out.textContent = "ERROR:\nNo customer selected.";
+            return;
+        }
+
+        const qty = parseInt(document.getElementById("qty-prod-" + productId).value || "0", 10);
+        if (!qty || qty <= 0) {
+            out.textContent = "ERROR:\nQuantity must be >= 1";
+            return;
+        }
+
+        const { baseUrl, cartApi } = getCfg();
+        const url = baseUrl + cartApi + "/items";
+
+        const payload = {
+            userId: SHOP_USER_ID,
+            productId: productId,
+            quantity: qty
+        };
+
+        try {
+            const data = await httpJson(url, "POST", payload);
+            out.textContent = "Added ✅\n\n" + JSON.stringify(data, null, 2);
+        } catch (e) {
+            out.textContent = "ERROR:\n" + e.message;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    function getCfg() {
+        const baseUrl = localStorage.getItem("baseUrl") || document.getElementById("baseUrl").value.trim();
+        document.getElementById("baseUrl").value = baseUrl;
+
+        return {
+            baseUrl,
+            usersApi: document.getElementById("usersApi").value.trim(),
+            productsApi: document.getElementById("productsApi").value.trim(),
+            cartApi: document.getElementById("cartApi").value.trim(),
+            sellerAddProductApi: document.getElementById("sellerAddProductApi").value.trim(),
+        };
+    }
+
+    function saveBaseUrl() {
+        const baseUrl = document.getElementById("baseUrl").value.trim();
+        localStorage.setItem("baseUrl", baseUrl);
+        alert("Saved base URL: " + baseUrl);
+    }
+
+    async function httpJson(url, method, body) {
+        const opts = {
+            method,
+            headers: { "Content-Type": "application/json" },
+        };
+        if (body !== undefined) opts.body = JSON.stringify(body);
+
+        const res = await fetch(url, opts);
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch { data = text; }
+
+        if (!res.ok) {
+            throw new Error(typeof data === "string" ? data : JSON.stringify(data, null, 2));
+        }
+        return data;
+    }
+
+    // 1) CREATE USER
+    async function createUser() {
+        const out = document.getElementById("createUserOut");
+        out.textContent = "Loading...";
+
+        const { baseUrl, usersApi } = getCfg();
+
+        // Adjust this payload to match your backend User create DTO
+        const payload = {
+            name: document.getElementById("uName").value.trim(),
+            email: document.getElementById("uEmail").value.trim(),
+            role: document.getElementById("uRole").value.trim(),
+        };
+
+        try {
+            const data = await httpJson(baseUrl + usersApi, "POST", payload);
+            out.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+            out.textContent = "ERROR:\n" + e.message;
+        }
+    }
+
+    // seller add product
+    async function sellerAddProduct() {
+        const out = document.getElementById("sellerAddOut");
+        out.textContent = "Loading...";
+
+        const { baseUrl } = getCfg(); // ignore sellerAddProductApi
+        const sellerId = document.getElementById("sellerId").value.trim();
+
+        if (!sellerId) {
+            out.textContent = "ERROR:\nSeller ID is required";
+            return;
+        }
+
+        const product = {
+            name: document.getElementById("pName").value.trim(),
+            price: parseFloat(document.getElementById("pPrice").value.trim()),
+            stock: parseInt(document.getElementById("pStock").value.trim() || "0", 10),
+            category: document.getElementById("pCategory").value.trim()
+        };
+
+        try {
+            const url = `${baseUrl}/product?sellerId=${encodeURIComponent(sellerId)}`;
+
+            out.textContent =
+                "DEBUG\nfinal url: " + url + "\n\nbody:\n" + JSON.stringify(product, null, 2);
+
+            const data = await httpJson(url, "POST", product);
+            out.textContent = "SUCCESS ✅\n\n" + JSON.stringify(data, null, 2);
+        } catch (e) {
+            out.textContent = "ERROR:\n" + e.message;
+        }
+    }
+
+
+
+
+
+
+
+
+    // 3) LOAD CART
+    async function loadCart() {
+        const out = document.getElementById("cartOut");
+        const parsed = document.getElementById("cartParsed");
+        out.textContent = "Loading...";
+        parsed.textContent = "";
+
+        const { baseUrl, cartApi } = getCfg();
+        const userId = document.getElementById("cartUserId").value.trim();
+        const email = document.getElementById("cartEmail").value.trim();
+
+        try {
+            let url = baseUrl + cartApi;
+
+            // Common patterns:
+            // A) GET /api/cart?userId=1
+            // B) GET /api/cart/by-email?email=x@y.com
+            // Modify as needed.
+
+            if (email) {
+                // If your backend supports email-based cart lookup, change endpoint here:
+                // url = baseUrl + cartApi + "/by-email?email=" + encodeURIComponent(email);
+                // For now we assume userId lookup:
+            }
+
+            if (!userId) {
+                throw new Error("Provide userId (or implement email endpoint and enable it in code).");
+            }
+
+            url += "?userId=" + encodeURIComponent(userId);
+
+            const data = await httpJson(url, "GET");
+            out.textContent = JSON.stringify(data, null, 2);
+
+            // Try to parse cart items
+            const items = data.items || [];
+            if (!items.length) {
+                parsed.textContent = "Cart is empty.";
+                return;
+            }
+
+            let html = `<div class="mt-2">`;
+            let total = 0;
+
+            html += `<table class="table table-sm table-bordered">
+                <thead><tr>
+                  <th>Product</th><th>Qty</th><th>PriceAtTime</th><th>SubTotal</th>
+                </tr></thead><tbody>`;
+
+            for (const it of items) {
+                const name = it.product?.name ?? ("productId=" + (it.product?.id ?? ""));
+                const qty = it.quantity ?? 0;
+                const price = parseFloat(it.priceAtTime ?? 0);
+                const sub = (it.subTotal !== undefined) ? parseFloat(it.subTotal) : (price * qty);
+                total += sub;
+
+                html += `<tr>
+                  <td>${name}</td>
+                  <td>${qty}</td>
+                  <td>${it.priceAtTime ?? ""}</td>
+                  <td>${sub}</td>
+                </tr>`;
+            }
+
+            html += `</tbody></table>`;
+
+            // If backend sends total, use it; otherwise computed
+            const backendTotal = data.total;
+            html += `<div class="fw-bold">Total: ${backendTotal ?? total}</div>`;
+            html += `</div>`;
+
+            parsed.innerHTML = html;
+
+        } catch (e) {
+            out.textContent = "ERROR:\n" + e.message;
+            parsed.textContent = "";
+        }
+    }
+
+    // load saved baseUrl on startup
+    (function init() {
+        const saved = localStorage.getItem("baseUrl");
+        if (saved) document.getElementById("baseUrl").value = saved;
+    })();
 </script>
+
+<div style="background:yellow;padding:6px;border-radius:8px;">
+    RUNNING FILE MARKER: VERSION 999
+</div>
+
+
 
 </body>
 </html>

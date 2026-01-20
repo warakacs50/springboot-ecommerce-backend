@@ -42,7 +42,7 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{productId}")
+    @RequestMapping("/api/products")
     public ResponseEntity<Product> getProductById(@PathVariable Integer productId) {
         Product product = productService.getProductById(productId);
         return ResponseEntity.ok(product);
@@ -56,4 +56,6 @@ public class ProductController {
                 productService.getAllProducts();
         return ResponseEntity.ok(products);
     }
+
+
 }
