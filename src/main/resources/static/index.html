@@ -358,38 +358,49 @@
         }
     }
 
-    // Step 4: add product to that customer's cart
-    async function addRowProductToCart(productId) {
-        const out = document.getElementById("shopActionOut");
-        out.textContent = "Loading...";
+    // Step 4: add product to that customer's cart  (FIXED for backend: POST /api/cart/add?userId=&productId=&quantity=)
+async function addRowProductToCart(productId) {
+  const out = document.getElementById("shopActionOut");
+  out.textContent = "Loading...";
 
-        if (!SHOP_USER_ID) {
-            out.textContent = "ERROR:\nNo customer selected.";
-            return;
-        }
+  if (!SHOP_USER_ID) {
+    out.textContent = "ERROR:\nNo customer selected.";
+    return;
+  }
 
-        const qty = parseInt(document.getElementById("qty-prod-" + productId).value || "0", 10);
-        if (!qty || qty <= 0) {
-            out.textContent = "ERROR:\nQuantity must be >= 1";
-            return;
-        }
+  const qty = parseInt(document.getElementById("qty-prod-" + productId).value || "0", 10);
+  if (!qty || qty <= 0) {
+    out.textContent = "ERROR:\nQuantity must be >= 1";
+    return;
+  }
 
-        const { baseUrl, cartApi } = getCfg();
-        const url = baseUrl + cartApi + "/items";
+  const { baseUrl, cartApi } = getCfg();
 
-        const payload = {
-            userId: SHOP_USER_ID,
-            productId: productId,
-            quantity: qty
-        };
+  // ✅ backend endpoint is /api/cart/add and uses @RequestParam
+  const url = new URL(baseUrl + cartApi + "/add");
+  url.searchParams.set("userId", SHOP_USER_ID);
+  url.searchParams.set("productId", productId);
+  url.searchParams.set("quantity", qty);
 
-        try {
-            const data = await httpJson(url, "POST", payload);
-            out.textContent = "Added ✅\n\n" + JSON.stringify(data, null, 2);
-        } catch (e) {
-            out.textContent = "ERROR:\n" + e.message;
-        }
+  try {
+    // ✅ POST with NO JSON body
+    const res = await fetch(url.toString(), { method: "POST" });
+    const text = await res.text();
+
+    let data;
+    try { data = JSON.parse(text); } catch { data = text; }
+
+    if (!res.ok) {
+      throw new Error(typeof data === "string" ? data : JSON.stringify(data, null, 2));
     }
+
+    out.textContent = "Added ✅\n\n" + JSON.stringify(data, null, 2);
+  } catch (e) {
+    out.textContent = "ERROR:\n" + e.message;
+  }
+}
+
+
 
 
 
@@ -422,23 +433,27 @@
         alert("Saved base URL: " + baseUrl);
     }
 
-    async function httpJson(url, method, body) {
-        const opts = {
-            method,
-            headers: { "Content-Type": "application/json" },
-        };
-        if (body !== undefined) opts.body = JSON.stringify(body);
+async function httpJson(url, method, body) {
+  const opts = { method, headers: {} };
 
-        const res = await fetch(url, opts);
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = text; }
+  // Only attach JSON header/body when we actually send a body
+  if (body !== undefined) {
+    opts.headers["Content-Type"] = "application/json";
+    opts.body = JSON.stringify(body);
+  }
 
-        if (!res.ok) {
-            throw new Error(typeof data === "string" ? data : JSON.stringify(data, null, 2));
-        }
-        return data;
-    }
+  const res = await fetch(url, opts);
+  const text = await res.text();
+
+  let data;
+  try { data = JSON.parse(text); } catch { data = text; }
+
+  if (!res.ok) {
+    throw new Error(typeof data === "string" ? data : JSON.stringify(data, null, 2));
+  }
+  return data;
+}
+
 
     // 1) CREATE USER
     async function createUser() {
